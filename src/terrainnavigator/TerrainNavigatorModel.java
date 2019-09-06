@@ -1,6 +1,7 @@
 package terrainnavigator;
 
 import java.awt.Point;
+import java.util.ArrayList;
 import java.util.Random;
 
 public class TerrainNavigatorModel 
@@ -9,6 +10,7 @@ public class TerrainNavigatorModel
     Point currentPosition;
     int tally, size;
     boolean firstMove;
+    ArrayList<Point> history;
     
     public TerrainNavigatorModel(int size)
     {
@@ -18,6 +20,7 @@ public class TerrainNavigatorModel
         currentPosition = new Point(-1, -1);
         tally = 0;
         firstMove = true;
+        this.history = new ArrayList();
         
         for(int i = 0; i < size; i++)
         {
@@ -32,50 +35,10 @@ public class TerrainNavigatorModel
 
     public void move(int x, int y) 
     {
-        boolean valid = false;
-        
-        if(firstMove)
-        {
-            // if last row is clicked
-            if(y == size - 1)
-            {
-                // and if x is valid
-                if(x >= 0 || x < size)
-                {
-                    valid = true;
-                    firstMove = false;
-                }
-            }
-        }
-        else
-        {
-            if(currentPosition.y == y + 1)
-            {
-                if(currentPosition.x == x || currentPosition.x == x -1 || currentPosition.x == x+1)
-                {
-                    valid = true;
-                }
-                 else
-                {
-                    System.out.println("invlaid x!");
-                }
-            }
-            else
-            {
-                System.out.println("invlaid y!");
-            }
-        }
-        
-        if(valid)
-        {
-            currentPosition.x = x;
-            currentPosition.y = y; 
-            tally += gridMatrix[currentPosition.x][currentPosition.y];
-            System.out.println("valid move!");
-        }
-        else
-        {
-            System.out.println("invlaid move!");
-        }
+        currentPosition.x = x;
+        currentPosition.y = y; 
+        tally += gridMatrix[y][x];
+        history.add(new Point(x, y));
+        System.out.println("valid move - x" +x+ " y" +y+ " Tally: " + tally);
     }
 }

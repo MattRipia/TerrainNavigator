@@ -12,6 +12,9 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -28,6 +31,8 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
     JButton playAgainButton;
     JPanel eastPanel;
     
+    boolean validMove = false;
+    
     public TerrainNavigatorGUI()
     {
         super(new BorderLayout());
@@ -40,6 +45,8 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
         
         model = new TerrainNavigatorModel(size);
         drawPanel = new DrawPanel(size, boxSize, offSet, model);
+        Thread t1 = new Thread(drawPanel);
+        t1.start();
         
         eastPanel = new JPanel(new GridLayout(20, 0));
         score = new JLabel("0");
@@ -65,23 +72,61 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
     }
 
     @Override
-    public void mouseClicked(MouseEvent e) {
-        //System.out.println("location: " + e.getLocationOnScreen());
+    public void mouseClicked(MouseEvent e) 
+    {
+        System.out.println("location: " + e.getLocationOnScreen());
         
         Point p = e.getLocationOnScreen();
         Point currentWindow = super.getLocationOnScreen();
+        
+        // find out what box was clicked on based on mouse position
         p.x -= currentWindow.x;
         p.y -= currentWindow.y;
         p.x -= offSet;
         p.y -= offSet;
-        
         int x = p.x / boxSize;
         int y = p.y / boxSize;
         
-        System.out.println("x: " + x + " y: " + y);
-        model.move(x, y);
-        score.setText(String.valueOf(model.tally));
-        repaint();
+        if(model.firstMove)
+        {
+            // if last row is clicked
+            if(y == size - 1)
+            {
+                // and if x is valid
+                if(x >= 0 || x < size)
+                {
+                    validMove = true;
+                    model.firstMove = false;
+                }
+            }
+        }
+        else
+        {
+            if(model.currentPosition.y == y + 1)
+            {
+                if(model.currentPosition.x == x || model.currentPosition.x == x -1 || model.currentPosition.x == x+1)
+                {
+                    validMove = true;
+                }
+                 else
+                {
+                    System.out.println("invlaid x!");
+                }
+            }
+            else
+            {
+                System.out.println("invlaid y!");
+            }
+        }
+
+        if(validMove)
+        {
+            System.out.println("x: " + x + " y: " + y);
+            model.move(x, y);
+            drawPanel.wakeUp();
+            validMove = false;
+            score.setText(String.valueOf(model.tally));
+        }
     }
 
     @Override
@@ -100,7 +145,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
     public void mouseExited(MouseEvent e) {
     }
     
-    private class DrawPanel extends JPanel
+    private class DrawPanel extends JPanel implements Runnable
     {
         int size, boxSize, offSet;
         TerrainNavigatorModel model;
@@ -110,7 +155,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
             this.size = size;
             this.boxSize = boxSize;
             this.offSet = offSet;
-            this.model = model;
+            this.model = model;  
         }
         
         @Override
@@ -119,6 +164,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
             super.paintComponent(g);
             printGrid(g);
             printAvailibleMove(g);
+            printHistory(g);
         }
         
         private void printGrid(Graphics g)
@@ -135,6 +181,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
                 for(int j = 0; j < size; j ++)
                 {
                     int currNum = model.gridMatrix[i][j];
+                    
                     // -5 -> -1 = 5
                     if(currNum <  0){
                         g.setColor(Color.WHITE);
@@ -179,6 +226,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
             int xEnd = xStart + boxSize;
             int yStart = offSet;
             int yEnd = yStart + boxSize;
+            
             int currentX = model.currentPosition.x;
             int currentY  = model.currentPosition.y;
             
@@ -225,6 +273,38 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
                 xStart = offSet;
                 xEnd = xStart + boxSize;
             }
+        }
+
+        private void printHistory(Graphics g) 
+        {
+            g.setColor(Color.GREEN);
+            
+            for(Point p : model.history)
+            {
+                g.fillOval((offSet + (boxSize * p.x)) + boxSize / 2, (offSet + (boxSize * p.y)) + boxSize / 2, 10, 10);
+            }
+        }
+
+        @Override
+        public void run() 
+        {
+            while(true)
+            {
+                try {
+                    synchronized(this){
+                        this.wait();
+                        System.out.println("in while loop");
+                        this.repaint();
+                    }
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(TerrainNavigatorGUI.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+        }
+
+        private synchronized void wakeUp() 
+        {
+            notifyAll();
         }
     }
 }
