@@ -12,6 +12,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.BorderFactory;
@@ -22,14 +23,12 @@ import javax.swing.JPanel;
 
 public class TerrainNavigatorGUI extends JPanel implements ActionListener, MouseListener
 {
-    TerrainNavigatorModel model;
-    DrawPanel drawPanel;
-    int size;
-    int offSet;
-    int boxSize;
-    JLabel scoreLabel;
-    JButton playAgainButton, newTerrainButtonDB, newTerrainButtonRandom;
     JPanel eastPanel;
+    JLabel scoreLabel;
+    DrawPanel drawPanel;
+    int size, offSet, boxSize;
+    TerrainNavigatorModel model;
+    JButton playAgainButton, newTerrainButtonDB, newTerrainButtonRandom;
     
     boolean validMove = false;
     
@@ -37,18 +36,8 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
     {
         super(new BorderLayout());
         super.setBackground(Color.WHITE);
-        super.setPreferredSize(new Dimension(1150,900));
-        
-        size = 20;
-        offSet = 20;
-        boxSize = (900 - offSet * 2) / size;
-        
-        model = new TerrainNavigatorModel(size);
-        drawPanel = new DrawPanel(size, boxSize, offSet, model);
-        
-        Thread t1 = new Thread(drawPanel);
-        t1.start();
-        
+        super.setPreferredSize(new Dimension(1300,900));
+
         eastPanel = new JPanel(new GridLayout(20, 0));
         scoreLabel = new JLabel("Score: 0");
         newTerrainButtonDB = new JButton("New Terrain (From Database)");
@@ -58,7 +47,10 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
         eastPanel.add(scoreLabel);
         eastPanel.add(newTerrainButtonDB);
         eastPanel.add(newTerrainButtonRandom);
-         
+        
+        size = 20;
+        startTerrain(false);
+        
         drawPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK));
         eastPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK));
         
@@ -92,12 +84,9 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
                         
                         // re-instantiate a new model / draw thread
                         this.size = intSize;
-                        this.boxSize = (900 - this.offSet * 2) / intSize;
-                        this.model = new TerrainNavigatorModel(intSize);
-                        this.drawPanel = new DrawPanel(intSize, this.boxSize, this.offSet, this.model);
-                        Thread t1 = new Thread(this.drawPanel);
-                        t1.start();
-                        System.out.println("new board!");
+                        startTerrain(false);
+                        
+                        // add the new panel to the view, then revalidate
                         add(drawPanel, BorderLayout.CENTER);
                         drawPanel.revalidate();
                     }
@@ -107,6 +96,19 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
                    JOptionPane.showConfirmDialog(this, "You didnt enter a number!", "Opps", 2);
                 }
             }
+        }
+        else if(source == newTerrainButtonDB)
+        {
+            // kill the old thread
+            this.drawPanel.drawing = false;
+            
+            // re-instantiate a new model / draw thread
+            this.size = 20;
+            startTerrain(true);
+            
+            // add the new panel to the view, then revalidate
+            add(drawPanel, BorderLayout.CENTER);
+            drawPanel.revalidate();
         }
     }
 
@@ -184,16 +186,44 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
     @Override
     public void mouseExited(MouseEvent e) {
     }
+
+    private void startTerrain(boolean db) 
+    {
+        this.offSet = 20;
+        
+        if(db)
+        {
+            try 
+            {
+                // tinyA, tinyB, small, medium, large, illustrated
+                this.model = new TerrainNavigatorModel("large");
+            } 
+            catch (SQLException ex) 
+            {
+                Logger.getLogger(TerrainNavigatorGUI.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        else
+        {
+            this.model = new TerrainNavigatorModel(size);
+
+        }
+        
+        this.boxSize = (900 - this.offSet * 2) / model.xSize;
+        this.drawPanel = new DrawPanel(boxSize, offSet, model);
+        this.scoreLabel.setText("Score: " + model.tally );
+        Thread t1 = new Thread(drawPanel);
+        t1.start();
+    }
     
     private class DrawPanel extends JPanel implements Runnable
     {
-        int size, boxSize, offSet;
+        int boxSize, offSet;
         TerrainNavigatorModel model;
         boolean drawing = true;
         
-        public DrawPanel(int size, int boxSize, int offSet, TerrainNavigatorModel model)
+        public DrawPanel(int boxSize, int offSet, TerrainNavigatorModel model)
         {
-            this.size = size;
             this.boxSize = boxSize;
             this.offSet = offSet;
             this.model = model;  
@@ -216,10 +246,10 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
             int yEnd = yStart + boxSize;
             
             // height
-            for(int i = 0; i < size; i ++)
+            for(int i = 0; i < model.xSize; i ++)
             {
                 // width
-                for(int j = 0; j < size; j ++)
+                for(int j = 0; j < model.ySize; j ++)
                 {
                     int currNum = model.gridMatrix[i][j];
                     
@@ -276,10 +306,10 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
             g.setColor(Color.BLUE);
 
              // height
-            for(int i = 0; i < size; i ++)
+            for(int i = 0; i < model.xSize; i ++)
             {
                 // width
-                for(int j = 0; j < size; j ++)
+                for(int j = 0; j < model.ySize; j ++)
                 {
                     // first move
                     if(currentX == -1 || currentY == -1)
@@ -319,10 +349,18 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
         private void printHistory(Graphics g) 
         {
             g.setColor(Color.GREEN);
+            Point prevPoint = null;
             
             for(Point p : model.history)
             {
-                g.fillOval((offSet + (boxSize * p.x)) + boxSize / 2, (offSet + (boxSize * p.y)) + boxSize / 2, 10, 10);
+                if(prevPoint == null)
+                {
+                    prevPoint = p;
+                }
+                
+                g.drawLine((offSet + (boxSize * prevPoint.x)) + boxSize / 2,  (offSet + (boxSize * prevPoint.y)) + boxSize / 2,  (offSet + (boxSize * p.x)) + boxSize / 2,  (offSet + (boxSize * p.y)) + boxSize / 2);
+                prevPoint = p;
+                //g.fillOval((offSet + (boxSize * p.x)) + boxSize / 2, (offSet + (boxSize * p.y)) + boxSize / 2, 10, 10);
             }
         }
 
@@ -332,7 +370,8 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
             while(drawing)
             {
                 try {
-                    synchronized(this){
+                    synchronized(this)
+                    {
                         this.wait();
                         System.out.println("in while loop");
                         this.repaint();

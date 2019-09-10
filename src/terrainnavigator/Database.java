@@ -19,8 +19,9 @@ public class Database
         try 
         {
             Class.forName(DRIVER);
-            conn = DriverManager.getConnection("jdbc:mysql://raptor2.aut.ac.nz:3306/terrains", "student", "fpn762");
+            conn = DriverManager.getConnection("jdbc:mysql://raptor2.aut.ac.nz:3306/terrains", "student", "fpn871");
             stmt = conn.createStatement();
+            System.out.println("Connected");
         } 
         catch (ClassNotFoundException | SQLException ex) 
         {
