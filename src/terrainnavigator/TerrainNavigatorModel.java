@@ -1,23 +1,34 @@
 package terrainnavigator;
 
 import java.awt.Point;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Random;
 
 public class TerrainNavigatorModel 
 {
-    int[][] gridMatrix;
-    Point currentPosition;
-    int tally, size;
-    boolean firstMove;
-    ArrayList<Point> history;
+    public int[][] gridMatrix;
+    public Point currentPosition;
+    public int tally, size;
+    public boolean firstMove;
+    public ArrayList<Point> history;
+    public Database db;
+    
+    public TerrainNavigatorModel() throws SQLException{
+        db = new Database();
+        gridMatrix = new int[size][size];
+        tally = 0;
+        firstMove = true;
+        this.history = new ArrayList();
+        currentPosition = new Point(-1, -1);
+    }
     
     public TerrainNavigatorModel(int size)
     {
-        gridMatrix = new int[size][size];
         Random rand = new Random();
-        this.size = size;
+        gridMatrix = new int[size][size];
         currentPosition = new Point(-1, -1);
+        this.size = size;
         tally = 0;
         firstMove = true;
         this.history = new ArrayList();

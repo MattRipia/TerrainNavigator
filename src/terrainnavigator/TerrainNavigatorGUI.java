@@ -12,12 +12,12 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
 public class TerrainNavigatorGUI extends JPanel implements ActionListener, MouseListener
@@ -27,8 +27,8 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
     int size;
     int offSet;
     int boxSize;
-    JLabel score, scoreLabel;
-    JButton playAgainButton;
+    JLabel scoreLabel;
+    JButton playAgainButton, newTerrainButtonDB, newTerrainButtonRandom;
     JPanel eastPanel;
     
     boolean validMove = false;
@@ -37,7 +37,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
     {
         super(new BorderLayout());
         super.setBackground(Color.WHITE);
-        super.setPreferredSize(new Dimension(1000,900));
+        super.setPreferredSize(new Dimension(1150,900));
         
         size = 20;
         offSet = 20;
@@ -45,18 +45,20 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
         
         model = new TerrainNavigatorModel(size);
         drawPanel = new DrawPanel(size, boxSize, offSet, model);
+        
         Thread t1 = new Thread(drawPanel);
         t1.start();
         
         eastPanel = new JPanel(new GridLayout(20, 0));
-        score = new JLabel("0");
-        scoreLabel = new JLabel("Score:     ");
-        playAgainButton = new JButton("Play Again");
+        scoreLabel = new JLabel("Score: 0");
+        newTerrainButtonDB = new JButton("New Terrain (From Database)");
+        newTerrainButtonDB.addActionListener(this);
+        newTerrainButtonRandom = new JButton("New Terrain (Randomly Generated)");
+        newTerrainButtonRandom.addActionListener(this);
         eastPanel.add(scoreLabel);
-        eastPanel.add(score);
-        eastPanel.add(playAgainButton);
-        
-        
+        eastPanel.add(newTerrainButtonDB);
+        eastPanel.add(newTerrainButtonRandom);
+         
         drawPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK));
         eastPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK));
         
@@ -68,7 +70,44 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
     @Override
     public void actionPerformed(ActionEvent e) 
     {
-        
+        Object source = e.getSource();
+        if(source == newTerrainButtonRandom)
+        {
+            String size = JOptionPane.showInputDialog(this, "Enter how large you would like the grid (5 - 30)", "Grid Size", 1);
+            System.out.println(size);
+            
+            if(size != null)
+            {
+                try
+                {
+                    int intSize = Integer.valueOf(size);
+                    if(intSize < 5 || intSize > 30)
+                    {
+                        JOptionPane.showConfirmDialog(this, "That number is out of range!", "Opps", 2);
+                    }
+                    else
+                    {
+                        // kill the old thread
+                        this.drawPanel.drawing = false;
+                        
+                        // re-instantiate a new model / draw thread
+                        this.size = intSize;
+                        this.boxSize = (900 - this.offSet * 2) / intSize;
+                        this.model = new TerrainNavigatorModel(intSize);
+                        this.drawPanel = new DrawPanel(intSize, this.boxSize, this.offSet, this.model);
+                        Thread t1 = new Thread(this.drawPanel);
+                        t1.start();
+                        System.out.println("new board!");
+                        add(drawPanel, BorderLayout.CENTER);
+                        drawPanel.revalidate();
+                    }
+                } 
+                catch(NumberFormatException numFormat)
+                {
+                   JOptionPane.showConfirmDialog(this, "You didnt enter a number!", "Opps", 2);
+                }
+            }
+        }
     }
 
     @Override
@@ -125,7 +164,8 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
             model.move(x, y);
             drawPanel.wakeUp();
             validMove = false;
-            score.setText(String.valueOf(model.tally));
+            System.out.println("score changed: " + model.tally);
+            scoreLabel.setText("Score: " + String.valueOf(model.tally));
         }
     }
 
@@ -149,6 +189,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
     {
         int size, boxSize, offSet;
         TerrainNavigatorModel model;
+        boolean drawing = true;
         
         public DrawPanel(int size, int boxSize, int offSet, TerrainNavigatorModel model)
         {
@@ -288,7 +329,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
         @Override
         public void run() 
         {
-            while(true)
+            while(drawing)
             {
                 try {
                     synchronized(this){
