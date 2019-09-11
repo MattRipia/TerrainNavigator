@@ -28,7 +28,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
     DrawPanel drawPanel;
     int size, offSet, boxSize;
     TerrainNavigatorModel model;
-    JButton playAgainButton, newTerrainButtonDB, newTerrainButtonRandom;
+    JButton playAgainButton, newTerrainButtonDB, newTerrainButtonRandom, retry;
     
     boolean validMove = false;
     
@@ -44,12 +44,16 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
         newTerrainButtonDB.addActionListener(this);
         newTerrainButtonRandom = new JButton("New Terrain (Randomly Generated)");
         newTerrainButtonRandom.addActionListener(this);
+        retry = new JButton("Retry");
+        retry.addActionListener(this);
         eastPanel.add(scoreLabel);
         eastPanel.add(newTerrainButtonDB);
         eastPanel.add(newTerrainButtonRandom);
+        eastPanel.add(retry);
         
         size = 20;
-        startTerrain(false);
+        offSet = 20;
+        startTerrain(this.size);
         
         drawPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK));
         eastPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK));
@@ -84,7 +88,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
                         
                         // re-instantiate a new model / draw thread
                         this.size = intSize;
-                        startTerrain(false);
+                        startTerrain(this.size);
                         
                         // add the new panel to the view, then revalidate
                         add(drawPanel, BorderLayout.CENTER);
@@ -101,14 +105,25 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
         {
             // kill the old thread
             this.drawPanel.drawing = false;
+            //this.drawPanel.wakeUp();
             
             // re-instantiate a new model / draw thread
-            this.size = 20;
-            startTerrain(true);
+            startTerrainDB();
             
             // add the new panel to the view, then revalidate
             add(drawPanel, BorderLayout.CENTER);
             drawPanel.revalidate();
+        }
+        else if(source == retry)
+        {
+            this.model.currentPosition.x = -1;
+            this.model.currentPosition.y = -1;
+            this.model.firstMove = true;
+            this.model.tally = 0;
+            this.model.history.clear();
+            this.scoreLabel.setText("Score: 0");
+            this.drawPanel.revalidate();
+            this.drawPanel.repaint();
         }
     }
 
@@ -187,31 +202,42 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
     public void mouseExited(MouseEvent e) {
     }
 
-    private void startTerrain(boolean db) 
-    {
-        this.offSet = 20;
-        
-        if(db)
-        {
-            try 
-            {
-                // tinyA, tinyB, small, medium, large, illustrated
-                this.model = new TerrainNavigatorModel("large");
-            } 
-            catch (SQLException ex) 
-            {
-                Logger.getLogger(TerrainNavigatorGUI.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
-        else
-        {
-            this.model = new TerrainNavigatorModel(size);
+    private void startTerrainDB(){
 
+        try 
+        {
+            // tinyA, tinyB, small, medium, large, illustrated
+            if(drawPanel != null)
+            {
+                this.drawPanel.killThread();
+            }
+            
+            this.model = new TerrainNavigatorModel("tinyA");
+            this.boxSize = (900 - this.offSet * 2) / model.xSize;
+            this.drawPanel = new DrawPanel(boxSize, offSet, model);
+            this.scoreLabel.setText("Score: " + model.tally );
+            drawPanel.drawing = true;
+            Thread t1 = new Thread(drawPanel);
+            t1.start();
+        } 
+        catch (SQLException ex) 
+        {
+            Logger.getLogger(TerrainNavigatorGUI.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+    
+    private void startTerrain(int size) 
+    {
+        if(drawPanel != null)
+        {
+            this.drawPanel.killThread();
         }
         
+        this.model = new TerrainNavigatorModel(size);
         this.boxSize = (900 - this.offSet * 2) / model.xSize;
         this.drawPanel = new DrawPanel(boxSize, offSet, model);
         this.scoreLabel.setText("Score: " + model.tally );
+        drawPanel.drawing = true;
         Thread t1 = new Thread(drawPanel);
         t1.start();
     }
@@ -220,22 +246,26 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
     {
         int boxSize, offSet;
         TerrainNavigatorModel model;
-        boolean drawing = true;
+        boolean drawing;
         
         public DrawPanel(int boxSize, int offSet, TerrainNavigatorModel model)
         {
+            this.drawing = false;
             this.boxSize = boxSize;
             this.offSet = offSet;
             this.model = model;  
         }
         
         @Override
-        protected void paintComponent(Graphics g) 
+        protected synchronized void paintComponent(Graphics g) 
         {
-            super.paintComponent(g);
-            printGrid(g);
-            printAvailibleMove(g);
-            printHistory(g);
+            if(model != null)
+            {
+                super.paintComponent(g);
+                printGrid(g);
+                printAvailibleMove(g);
+                printHistory(g);
+            }
         }
         
         private void printGrid(Graphics g)
@@ -246,10 +276,10 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
             int yEnd = yStart + boxSize;
             
             // height
-            for(int i = 0; i < model.xSize; i ++)
+            for(int i = model.ySize - 1; i >= 0; i--)
             {
                 // width
-                for(int j = 0; j < model.ySize; j ++)
+                for(int j = 0; j < model.xSize; j ++)
                 {
                     int currNum = model.gridMatrix[i][j];
                     
@@ -360,7 +390,6 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
                 
                 g.drawLine((offSet + (boxSize * prevPoint.x)) + boxSize / 2,  (offSet + (boxSize * prevPoint.y)) + boxSize / 2,  (offSet + (boxSize * p.x)) + boxSize / 2,  (offSet + (boxSize * p.y)) + boxSize / 2);
                 prevPoint = p;
-                //g.fillOval((offSet + (boxSize * p.x)) + boxSize / 2, (offSet + (boxSize * p.y)) + boxSize / 2, 10, 10);
             }
         }
 
@@ -372,16 +401,26 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
                 try {
                     synchronized(this)
                     {
-                        this.wait();
+                        wait();
                         System.out.println("in while loop");
-                        this.repaint();
+                        repaint();
                     }
                 } catch (InterruptedException ex) {
                     Logger.getLogger(TerrainNavigatorGUI.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
+            
+            System.out.println("thread died! =[");
         }
 
+        private synchronized void killThread()
+        {
+            boxSize = 0;
+            offSet = 0;
+            model = null;
+            drawing = false;
+            wakeUp();
+        }
         private synchronized void wakeUp() 
         {
             notifyAll();
