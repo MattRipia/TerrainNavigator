@@ -26,7 +26,7 @@ import javax.swing.JPanel;
 public class TerrainNavigatorGUI extends JPanel implements ActionListener, MouseListener
 {
     JPanel eastPanel;
-    JLabel scoreLabel;
+    JLabel scoreLabel, computersScoreLabel;
     DrawPanel drawPanel;
     int size, offSet, boxSize;
     TerrainNavigatorModel model;
@@ -42,6 +42,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
 
         eastPanel = new JPanel(new GridLayout(20, 0));
         scoreLabel = new JLabel("Total Difficulty: 0");
+        computersScoreLabel = new JLabel("Computers Difficulty: 0");
         newTerrainButtonDB = new JButton("New Terrain (From Database)");
         newTerrainButtonDB.addActionListener(this);
         solveOptimalPath = new JButton("Solve Optimal Path");
@@ -51,6 +52,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
         retry = new JButton("Retry");
         retry.addActionListener(this);
         eastPanel.add(scoreLabel);
+        eastPanel.add(computersScoreLabel);
         eastPanel.add(newTerrainButtonDB);
         eastPanel.add(newTerrainButtonRandom);
         eastPanel.add(retry);
@@ -137,15 +139,20 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
             this.model.currentPosition.x = -1;
             this.model.currentPosition.y = -1;
             this.model.firstMove = true;
+            this.model.computersFirstMove = true;
             this.model.tally = 0;
+            this.model.computersTally = 0;
             this.model.history.clear();
+            this.model.computersHistory.clear();
             this.scoreLabel.setText("Total Difficulty: 0");
+            this.computersScoreLabel.setText("Computers Difficulty: 0");
             this.drawPanel.revalidate();
             this.drawPanel.repaint();
         }
         else if(source == solveOptimalPath)
         {
             model.solveOptimalPath(0);
+            computersScoreLabel.setText("Computers Difficulty: " + model.computersTally);
             this.drawPanel.revalidate();
             this.drawPanel.repaint();
         }

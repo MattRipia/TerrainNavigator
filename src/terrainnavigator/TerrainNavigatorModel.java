@@ -10,13 +10,12 @@ import terrainnavigator.TerrainNavigatorGUI.DrawPanel;
 public class TerrainNavigatorModel 
 {
     public int[][] gridMatrix;
-    public Point currentPosition;
+    public Point currentPosition, computersPosition;
     public int tally, xSize, ySize, computersTally;
     public boolean firstMove, computersFirstMove;
     public ArrayList<Point> history, computersHistory;
     public Database db;
     public DrawPanel drawPanel;
-    
     
     public TerrainNavigatorModel(String terrain) throws SQLException
     {
@@ -29,6 +28,7 @@ public class TerrainNavigatorModel
         this.history = new ArrayList();
         this.computersHistory = new ArrayList();
         this.currentPosition = new Point(-1, -1);
+        this.computersPosition = new Point(-1, -1);
         this.db = new Database();
         
         // gets the size of the matrix
@@ -77,6 +77,7 @@ public class TerrainNavigatorModel
         Random rand = new Random();
         this.gridMatrix = new int[size][size];
         this.currentPosition = new Point(-1, -1);
+        this.computersPosition = new Point(-1, -1);
         this.xSize = size;
         this.ySize = size;
         this.tally = 0;
@@ -116,8 +117,8 @@ public class TerrainNavigatorModel
     
     public void moveAutomatically(int x, int y)
     {
-        currentPosition.x = x;
-        currentPosition.y = y; 
+        computersPosition.x = x;
+        computersPosition.y = y; 
         computersTally += gridMatrix[y][x];
         computersHistory.add(new Point(x, y));
         notifyGUI();
@@ -146,19 +147,19 @@ public class TerrainNavigatorModel
                 }
                 else
                 {
-                    validPositions.add(new Point(currentPosition.x, currentPosition.y - 1));
-                    System.out.println("adding point y:" + (currentPosition.y - 1) + " x:" + currentPosition.x);
+                    validPositions.add(new Point(computersPosition.x, computersPosition.y - 1));
+                    System.out.println("adding point y:" + (computersPosition.y - 1) + " x:" + computersPosition.x);
                     
-                    if(currentPosition.x - 1 >= 0)
+                    if(computersPosition.x - 1 >= 0)
                     {
-                        Point p = new Point( currentPosition.x - 1, currentPosition.y - 1);
+                        Point p = new Point( computersPosition.x - 1, computersPosition.y - 1);
                         System.out.println("adding point y:" + p.y + " x:" + p.x);
                         validPositions.add(p);
                     }
-                    if(currentPosition.x + 1 < xSize)
+                    if(computersPosition.x + 1 < xSize)
                     {
-                        validPositions.add(new Point(currentPosition.x + 1, currentPosition.y - 1));
-                        System.out.println("adding point y:" + (currentPosition.y - 1) + " x:" + (currentPosition.x + 1));
+                        validPositions.add(new Point(computersPosition.x + 1, computersPosition.y - 1));
+                        System.out.println("adding point y:" + (computersPosition.y - 1) + " x:" + (computersPosition.x + 1));
                     }
                 }
                 System.out.println();
@@ -180,7 +181,7 @@ public class TerrainNavigatorModel
                 System.out.println("point: " + nextPoint.x + " " + nextPoint.y + " value: " + gridMatrix[nextPoint.y][nextPoint.x]);
                 moveAutomatically(nextPoint.x, nextPoint.y);
                 validPositions.clear();
-                if(currentPosition.y <= 0)
+                if(computersPosition.y <= 0)
                 {
                     running = false;
                     System.out.println("done!");
