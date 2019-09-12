@@ -30,7 +30,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
     DrawPanel drawPanel;
     int size, offSet, boxSize;
     TerrainNavigatorModel model;
-    JButton playAgainButton, newTerrainButtonDB, newTerrainButtonRandom, retry;
+    JButton playAgainButton, newTerrainButtonDB, newTerrainButtonRandom, retry, solveOptimalPath;
     String[] dbOptions = {"tinyA", "tinyB", "small", "medium", "large", "illustrated"};
     boolean validMove = false;
     
@@ -41,9 +41,11 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
         super.setPreferredSize(new Dimension(1200,900));
 
         eastPanel = new JPanel(new GridLayout(20, 0));
-        scoreLabel = new JLabel("Score: 0");
+        scoreLabel = new JLabel("Total Difficulty: 0");
         newTerrainButtonDB = new JButton("New Terrain (From Database)");
         newTerrainButtonDB.addActionListener(this);
+        solveOptimalPath = new JButton("Solve Optimal Path");
+        solveOptimalPath.addActionListener(this);
         newTerrainButtonRandom = new JButton("New Terrain (Randomly Generated)");
         newTerrainButtonRandom.addActionListener(this);
         retry = new JButton("Retry");
@@ -52,6 +54,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
         eastPanel.add(newTerrainButtonDB);
         eastPanel.add(newTerrainButtonRandom);
         eastPanel.add(retry);
+        eastPanel.add(solveOptimalPath);
         
         size = 20;
         offSet = 0;
@@ -136,7 +139,13 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
             this.model.firstMove = true;
             this.model.tally = 0;
             this.model.history.clear();
-            this.scoreLabel.setText("Score: 0");
+            this.scoreLabel.setText("Total Difficulty: 0");
+            this.drawPanel.revalidate();
+            this.drawPanel.repaint();
+        }
+        else if(source == solveOptimalPath)
+        {
+            model.solveOptimalPath(0);
             this.drawPanel.revalidate();
             this.drawPanel.repaint();
         }
@@ -194,10 +203,10 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
         {
             System.out.println("x: " + x + " y: " + y);
             model.move(x, y);
-            drawPanel.wakeUp();
+            
             validMove = false;
             System.out.println("score changed: " + model.tally);
-            scoreLabel.setText("Score: " + String.valueOf(model.tally));
+            scoreLabel.setText("Total Difficulty: " + String.valueOf(model.tally));
         }
     }
 
@@ -239,7 +248,8 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
             }
             
             this.drawPanel = new DrawPanel(boxSize, offSet, model);
-            this.scoreLabel.setText("Score: " + model.tally );
+            this.model.addDrawPanel(drawPanel);
+            this.scoreLabel.setText("Total Difficulty: " + model.tally );
             drawPanel.drawing = true;
             
             Thread t1 = new Thread(drawPanel);
@@ -261,13 +271,15 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
         this.model = new TerrainNavigatorModel(size);
         this.boxSize = (900 - this.offSet * 2) / model.xSize;
         this.drawPanel = new DrawPanel(boxSize, offSet, model);
-        this.scoreLabel.setText("Score: " + model.tally );
+        this.model.addDrawPanel(drawPanel);
+        this.scoreLabel.setText("Total Difficulty: " + model.tally );
         drawPanel.drawing = true;
+        
         Thread t1 = new Thread(drawPanel);
         t1.start();
     }
     
-    private class DrawPanel extends JPanel implements Runnable
+    protected class DrawPanel extends JPanel implements Runnable
     {
         int boxSize, offSet;
         TerrainNavigatorModel model;
@@ -278,7 +290,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
             this.drawing = false;
             this.boxSize = boxSize;
             this.offSet = offSet;
-            this.model = model;  
+            this.model = model;
         }
         
         @Override
@@ -290,6 +302,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
                 printGrid(g);
                 printAvailibleMove(g);
                 printHistory(g);
+                printComputersHistory(g);
             }
         }
         
@@ -301,7 +314,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
             int yEnd = yStart + boxSize;
             
             // height
-            for(int i = model.ySize - 1; i >= 0; i--)
+            for(int i = 0; i < model.ySize; i++)
             {
                 // width
                 for(int j = 0; j < model.xSize; j ++)
@@ -418,6 +431,22 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
                 prevPoint = p;
             }
         }
+        
+        private void printComputersHistory(Graphics g)
+        {
+            g.setColor(Color.ORANGE);
+            Point prevPoint = null;
+            for(Point p : model.computersHistory)
+            {
+                if(prevPoint == null)
+                {
+                    prevPoint = p;
+                }
+                
+                g.drawLine((offSet + (boxSize * prevPoint.x)) + boxSize / 2,  (offSet + (boxSize * prevPoint.y)) + boxSize / 2,  (offSet + (boxSize * p.x)) + boxSize / 2,  (offSet + (boxSize * p.y)) + boxSize / 2);
+                prevPoint = p;
+            }
+        }
 
         @Override
         public void run() 
@@ -447,7 +476,8 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
             drawing = false;
             wakeUp();
         }
-        private synchronized void wakeUp() 
+        
+        public synchronized void wakeUp() 
         {
             notifyAll();
         }
