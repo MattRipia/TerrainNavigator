@@ -81,7 +81,7 @@ public class TerrainNavigatorModel
         
         for(int i = 0; i < ySize; i++)
         {
-            for(int j = 0; j < size; j++)
+            for(int j = 0; j < xSize; j++)
             {
                 int num = rand.nextInt(21) - 5;
                 gridMatrix[i][j] = num;

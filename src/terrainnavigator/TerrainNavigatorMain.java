@@ -19,6 +19,6 @@ public class TerrainNavigatorMain {
         Dimension frameDimension = frame.getSize();
         frame.setLocation((screenDimension.width-frameDimension.width)/2, (screenDimension.height-frameDimension.height)/2);
 	frame.setVisible(true);
-        frame.setResizable(false);
+        frame.setResizable(true);
     }
 }
