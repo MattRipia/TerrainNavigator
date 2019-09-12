@@ -79,7 +79,7 @@ public class TerrainNavigatorModel
         this.firstMove = true;
         this.history = new ArrayList();
         
-        for(int i = 0; i < size; i++)
+        for(int i = 0; i < ySize; i++)
         {
             for(int j = 0; j < size; j++)
             {
@@ -92,9 +92,10 @@ public class TerrainNavigatorModel
 
     public void move(int x, int y) 
     {
+        int actualY = Math.abs(y - ySize + 1);
         currentPosition.x = x;
         currentPosition.y = y; 
-        tally += gridMatrix[y][x];
+        tally += gridMatrix[actualY][x];
         history.add(new Point(x, y));
         System.out.println("valid move - x" +x+ " y" +y+ " Tally: " + tally);
     }
