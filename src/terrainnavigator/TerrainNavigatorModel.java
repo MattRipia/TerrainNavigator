@@ -35,15 +35,6 @@ public class TerrainNavigatorModel
         ResultSet rs = db.queryDB("select * from " + terrain);
         while(rs.next())
         {
-            //ResultSetMetaData md = rs.getMetaData();
-            //System.out.println("Col 1: " + md.getColumnName(1));
-            //System.out.println("Col 2: " + md.getColumnName(2));
-            //System.out.println("Col 3: " + md.getColumnName(3));
-            // 1-x 2-y 3-diff
-
-            //System.out.println("x: " + rs.getString(1));
-            //System.out.println("y: " + rs.getString(2));
-            //System.out.println("d: " + rs.getString(3));
             maxX = Math.max(maxX, Integer.valueOf(rs.getString(1)));
             maxY = Math.max(maxY, Integer.valueOf(rs.getString(2)));
             i++;
@@ -112,7 +103,6 @@ public class TerrainNavigatorModel
         tally += gridMatrix[y][x];
         history.add(new Point(x, y));
         notifyGUI();
-        //System.out.println("valid move - x" +x+ " y" +y+ " Tally: " + tally);
     }
     
     public void moveAutomatically(int x, int y)
@@ -122,21 +112,6 @@ public class TerrainNavigatorModel
         computersTally += gridMatrix[y][x];
         computersHistory.add(new Point(x, y));
         notifyGUI();
-        //System.out.println("valid move - y:" +y+ " x:" +x+ " Tally: " + tally);
-    }
-    
-    private int[][] getSubMatrix(int height)
-    {
-        int[][] subMatrix = new int[height][xSize];
-        int yPos = Math.abs(computersPosition.y - height);
-        for(int i = 0 ; i < height; i++)
-        {
-            for(int j = 0 ; j < xSize; j++){
-                subMatrix[i][j] = gridMatrix[yPos][j];
-            }
-            yPos++;
-        }
-        return subMatrix;
     }
     
     public void solveOptimalPath(float intelligence)
@@ -210,29 +185,26 @@ public class TerrainNavigatorModel
             int rowsLeft = 0;
             
             System.out.println("forward rows of " + ySize + " - " + forwardRows);
-//            while(running)
-//            {
+            while(running)
+            {
                 // shows what the computer can currently see
-                
-                computersFirstMove = false;
-                computersPosition.y = 12;
-                computersPosition.x = 12;
-                
                 if(computersFirstMove)
                 {
                     rowsLeft = ySize;
+                    computersPosition.y = ySize;
+                    computersPosition.x = xSize;
+                    computersFirstMove = false;
                 }
                 else
                 {
                     rowsLeft = computersPosition.y;
                 }
-                System.out.println("ySize: " + ySize + " currPos: " + computersPosition.y + " rows left: " + rowsLeft);
                 
                 int y = Math.min(forwardRows,rowsLeft);
-                int[][] subMatrix = getSubMatrix(y);
-                
-                
-                
+                Node p = findNextMove(getSubMatrix(y), y);
+                System.out.println("before currPos: " + computersPosition.y + " rows left: " + rowsLeft);
+                moveAutomatically(p.x, p.y);
+                System.out.println("after currPos: " + computersPosition.y + " rows left: " + rowsLeft);
                 
                 // end reached
                 if(computersPosition.y <= 0)
@@ -240,7 +212,107 @@ public class TerrainNavigatorModel
                     running = false;
                     System.out.println("done!");
                 }
-//            }
+            }
+        }
+    }
+
+    private Node findNextMove(int[][] subMatrix, int height) 
+    {
+        Node[][] nodes = new Node[height][xSize];
+        for(int i = 0; i < height; i++)
+        {
+            for(int j = 0; j < xSize; j++)
+            {
+                nodes[i][j] = new Node(i,j,subMatrix[i][j]);
+            }
+        }
+        
+        // loop through the nodes backwards
+        for(int i = height - 1; i >= 0; i--)
+        {
+            for(int j = xSize - 1; j >= 0; j--)
+            {   
+                // bottom row
+                if(i == height - 1)
+                {
+                    nodes[i][j].previousBestChoice = null;
+                }
+                else
+                {
+                    ArrayList<Node> selectableNodes = new ArrayList();
+                    
+                    // add the node directly below
+                    selectableNodes.add(nodes[i+1][j]);
+                    
+                    // add the node below and to the right
+                    if(j + 1 != xSize){
+                        selectableNodes.add(nodes[i+1][j+1]);
+                    }
+                    
+                    // add the node below and to the right
+                    if(j != 0){
+                        selectableNodes.add(nodes[i+1][j-1]);
+                    }
+                    Node node = null;
+                    for(Node n : selectableNodes){
+                        if(node == null){
+                            node = n;
+                        }
+                        if(n.totalDifficulty < node.totalDifficulty){
+                            node = n;
+                        }
+                    }
+                    
+                    nodes[i][j].previousBestChoice = node;
+                    nodes[i][j].totalDifficulty += node.totalDifficulty;
+                }
+                
+                System.out.println("current j: " + j);
+            }
+        }
+        
+        Node returnNode = null;
+        for(int i = 0 ;i < xSize; i++)
+        {
+            if(returnNode == null)
+            {
+                returnNode = nodes[0][i];
+            }
+            
+            if(nodes[0][i].totalDifficulty < returnNode.totalDifficulty)
+            {
+                returnNode = nodes[0][i];
+            }
+        }
+        
+        return returnNode;
+    }
+    
+    private int[][] getSubMatrix(int height)
+    {
+        int[][] subMatrix = new int[height][xSize];
+        int yPos = Math.abs(computersPosition.y - height);
+        for(int i = 0 ; i < height; i++)
+        {
+            for(int j = 0 ; j < xSize; j++){
+                subMatrix[i][j] = gridMatrix[yPos][j];
+            }
+            yPos++;
+        }
+        return subMatrix;
+    }
+    
+    private class Node
+    {
+        int x, y, originalDifficulty, totalDifficulty;
+        Node previousBestChoice;
+        
+        public Node(int x, int y, int od)
+        {
+            this.x = x;
+            this.y = y;
+            this.originalDifficulty = od;
+            this.totalDifficulty = od;
         }
     }
 }

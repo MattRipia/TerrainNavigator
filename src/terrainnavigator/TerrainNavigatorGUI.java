@@ -159,7 +159,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
         }
         else if(source == solveOptimalPathDP)
         {
-            model.solveOptimalPath(.5f);
+            model.solveOptimalPath(1.0f);
             computersScoreLabel.setText("Computers Difficulty: " + model.computersTally);
             this.drawPanel.revalidate();
             this.drawPanel.repaint();
