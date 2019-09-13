@@ -125,10 +125,24 @@ public class TerrainNavigatorModel
         //System.out.println("valid move - y:" +y+ " x:" +x+ " Tally: " + tally);
     }
     
-    public void solveOptimalPath(int intelligence)
+    private int[][] getSubMatrix(int height)
+    {
+        int[][] subMatrix = new int[height][xSize];
+        int yPos = Math.abs(computersPosition.y - height);
+        for(int i = 0 ; i < height; i++)
+        {
+            for(int j = 0 ; j < xSize; j++){
+                subMatrix[i][j] = gridMatrix[yPos][j];
+            }
+            yPos++;
+        }
+        return subMatrix;
+    }
+    
+    public void solveOptimalPath(float intelligence)
     {
         // greedy choice
-        if(intelligence == 0)
+        if(intelligence == 0.0f)
         {
             // find the first move
             boolean running = true;
@@ -187,6 +201,46 @@ public class TerrainNavigatorModel
                     System.out.println("done!");
                 }
             }
+        }
+        else
+        {
+            // dynamic solution
+            boolean running = true;
+            int forwardRows = (int)(ySize * intelligence);
+            int rowsLeft = 0;
+            
+            System.out.println("forward rows of " + ySize + " - " + forwardRows);
+//            while(running)
+//            {
+                // shows what the computer can currently see
+                
+                computersFirstMove = false;
+                computersPosition.y = 12;
+                computersPosition.x = 12;
+                
+                if(computersFirstMove)
+                {
+                    rowsLeft = ySize;
+                }
+                else
+                {
+                    rowsLeft = computersPosition.y;
+                }
+                System.out.println("ySize: " + ySize + " currPos: " + computersPosition.y + " rows left: " + rowsLeft);
+                
+                int y = Math.min(forwardRows,rowsLeft);
+                int[][] subMatrix = getSubMatrix(y);
+                
+                
+                
+                
+                // end reached
+                if(computersPosition.y <= 0)
+                {
+                    running = false;
+                    System.out.println("done!");
+                }
+//            }
         }
     }
 }

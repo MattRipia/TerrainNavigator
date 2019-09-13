@@ -4,7 +4,6 @@ import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GridLayout;
@@ -16,7 +15,6 @@ import java.awt.event.MouseListener;
 import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
@@ -30,7 +28,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
     DrawPanel drawPanel;
     int size, offSet, boxSize;
     TerrainNavigatorModel model;
-    JButton playAgainButton, newTerrainButtonDB, newTerrainButtonRandom, retry, solveOptimalPath;
+    JButton playAgainButton, newTerrainButtonDB, newTerrainButtonRandom, retry, solveOptimalPath, solveOptimalPathDP;
     String[] dbOptions = {"tinyA", "tinyB", "small", "medium", "large", "illustrated"};
     boolean validMove = false;
     
@@ -45,8 +43,10 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
         computersScoreLabel = new JLabel("Computers Difficulty: 0");
         newTerrainButtonDB = new JButton("New Terrain (From Database)");
         newTerrainButtonDB.addActionListener(this);
-        solveOptimalPath = new JButton("Solve Optimal Path");
+        solveOptimalPath = new JButton("Solve Optimal Path (Greedy)");
         solveOptimalPath.addActionListener(this);
+        solveOptimalPathDP = new JButton("Solve Optimal Path (Dynamic Programming)");
+        solveOptimalPathDP.addActionListener(this);
         newTerrainButtonRandom = new JButton("New Terrain (Randomly Generated)");
         newTerrainButtonRandom.addActionListener(this);
         retry = new JButton("Retry");
@@ -57,6 +57,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
         eastPanel.add(newTerrainButtonRandom);
         eastPanel.add(retry);
         eastPanel.add(solveOptimalPath);
+        eastPanel.add(solveOptimalPathDP);
         
         size = 20;
         offSet = 0;
@@ -152,6 +153,13 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
         else if(source == solveOptimalPath)
         {
             model.solveOptimalPath(0);
+            computersScoreLabel.setText("Computers Difficulty: " + model.computersTally);
+            this.drawPanel.revalidate();
+            this.drawPanel.repaint();
+        }
+        else if(source == solveOptimalPathDP)
+        {
+            model.solveOptimalPath(.5f);
             computersScoreLabel.setText("Computers Difficulty: " + model.computersTally);
             this.drawPanel.revalidate();
             this.drawPanel.repaint();
