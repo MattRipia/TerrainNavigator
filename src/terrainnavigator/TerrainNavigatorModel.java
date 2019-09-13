@@ -202,7 +202,12 @@ public class TerrainNavigatorModel
                 
                 int y = Math.min(forwardRows,rowsLeft);
                 Node p = findNextMove(getSubMatrix(y), y);
-                System.out.println("before currPos: " + computersPosition.y + " rows left: " + rowsLeft);
+
+                while(p.previousBestChoice != null)
+                {
+                    p = p.previousBestChoice;
+                }
+                
                 moveAutomatically(p.x, p.y);
                 System.out.println("after currPos: " + computersPosition.y + " rows left: " + rowsLeft);
                 
@@ -272,7 +277,7 @@ public class TerrainNavigatorModel
         }
         
         Node returnNode = null;
-        for(int i = 0 ;i < xSize; i++)
+        for(int i = 0 ; i < xSize; i++)
         {
             if(returnNode == null)
             {
@@ -307,10 +312,10 @@ public class TerrainNavigatorModel
         int x, y, originalDifficulty, totalDifficulty;
         Node previousBestChoice;
         
-        public Node(int x, int y, int od)
+        public Node(int y, int x, int od)
         {
-            this.x = x;
             this.y = y;
+            this.x = x;
             this.originalDifficulty = od;
             this.totalDifficulty = od;
         }

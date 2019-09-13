@@ -188,7 +188,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
             if(y == model.ySize - 1)
             {
                 // and if x is valid
-                if(x >= 0 || x < model.xSize)
+                if(x >= 0 && x < model.xSize)
                 {
                     validMove = true;
                     model.firstMove = false;
@@ -218,7 +218,6 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
         {
             System.out.println("x: " + x + " y: " + y);
             model.move(x, y);
-            
             validMove = false;
             System.out.println("score changed: " + model.tally);
             scoreLabel.setText("Total Difficulty: " + String.valueOf(model.tally));
