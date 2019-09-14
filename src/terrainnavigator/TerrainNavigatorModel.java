@@ -5,6 +5,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import terrainnavigator.TerrainNavigatorGUI.DrawPanel;
 
 public class TerrainNavigatorModel 
@@ -96,6 +98,22 @@ public class TerrainNavigatorModel
         drawPanel.wakeUp();
     }
 
+    public void resetComputer(){
+        computersPosition.x = -1;
+        computersPosition.y = -1;
+        computersFirstMove = true;
+        computersTally = 0;
+        computersHistory.clear();
+    }
+    
+    public void resetPlayer(){
+        currentPosition.x = -1;
+        currentPosition.y = -1;
+        firstMove = true;
+        tally = 0;
+        history.clear();
+    }
+    
     public void move(int x, int y) 
     {
         currentPosition.x = x;
@@ -107,6 +125,11 @@ public class TerrainNavigatorModel
     
     public void moveAutomatically(int x, int y)
     {
+        if(computersFirstMove)
+        {
+            computersFirstMove = false;
+        }
+        
         computersPosition.x = x;
         computersPosition.y = y; 
         computersTally += gridMatrix[y][x];
@@ -159,12 +182,11 @@ public class TerrainNavigatorModel
                     {
                         nextPoint = p;
                     }
-                    //System.out.println("current y:" + p.y + " x: " + p.x);
+                    
                     if(gridMatrix[nextPoint.y][nextPoint.x] > gridMatrix[p.y][p.x])
                     {
                         nextPoint = p;
-                    }
-                    
+                    } 
                 }
 
                 System.out.println("point: " + nextPoint.x + " " + nextPoint.y + " value: " + gridMatrix[nextPoint.y][nextPoint.x]);
@@ -183,37 +205,34 @@ public class TerrainNavigatorModel
             boolean running = true;
             int forwardRows = (int)(ySize * intelligence);
             int rowsLeft = 0;
+            int currentY = ySize - 1;
             
             System.out.println("forward rows of " + ySize + " - " + forwardRows);
             while(running)
             {
                 // shows what the computer can currently see
-                if(computersFirstMove)
-                {
+                if(computersFirstMove){
                     rowsLeft = ySize;
                     computersPosition.y = ySize;
                     computersPosition.x = xSize;
-                    computersFirstMove = false;
                 }
-                else
-                {
+                else{
                     rowsLeft = computersPosition.y;
                 }
                 
                 int y = Math.min(forwardRows,rowsLeft);
                 Node p = findNextMove(getSubMatrix(y), y);
 
-                while(p.previousBestChoice != null)
-                {
+                while(p.previousBestChoice != null){
                     p = p.previousBestChoice;
                 }
                 
+                // because the co-ordinate returned is only part of a sub-matrix, the y co-ordinate needs to be reset to the correct level
+                p.y = currentY--;
                 moveAutomatically(p.x, p.y);
-                System.out.println("after currPos: " + computersPosition.y + " rows left: " + rowsLeft);
                 
                 // end reached
-                if(computersPosition.y <= 0)
-                {
+                if(computersPosition.y <= 0){
                     running = false;
                     System.out.println("done!");
                 }
@@ -232,11 +251,33 @@ public class TerrainNavigatorModel
             }
         }
         
+        int startX = 0; 
+        int endX = 0;
+        
+        // only use selectable nodes
+        if(computersFirstMove){
+            startX = 0;
+            endX = xSize - 1;
+        }
+        else{
+            startX = computersPosition.x - 1;
+            endX = computersPosition.x + 1;
+
+            if(startX < 0){
+                startX = 0;
+            }
+            if(endX >= xSize){
+                endX = xSize - 1;
+            }
+        }
+        
         // loop through the nodes backwards
         for(int i = height - 1; i >= 0; i--)
         {
-            for(int j = xSize - 1; j >= 0; j--)
+            for(int j = endX; j >= startX; j--)
             {   
+                nodes[i][j].validChoice = true;
+                
                 // bottom row
                 if(i == height - 1)
                 {
@@ -247,17 +288,25 @@ public class TerrainNavigatorModel
                     ArrayList<Node> selectableNodes = new ArrayList();
                     
                     // add the node directly below
-                    selectableNodes.add(nodes[i+1][j]);
-                    
+                    if(nodes[i+1][j].validChoice){
+                        selectableNodes.add(nodes[i+1][j]);
+                    }
+
                     // add the node below and to the right
                     if(j + 1 != xSize){
-                        selectableNodes.add(nodes[i+1][j+1]);
+                        if(nodes[i+1][j+1].validChoice){
+                            selectableNodes.add(nodes[i+1][j+1]);
+                        }
                     }
-                    
+
                     // add the node below and to the right
                     if(j != 0){
-                        selectableNodes.add(nodes[i+1][j-1]);
+                        if(nodes[i+1][j-1].validChoice){
+                            selectableNodes.add(nodes[i+1][j-1]);
+                        }
                     }
+                    
+                    
                     Node node = null;
                     for(Node n : selectableNodes){
                         if(node == null){
@@ -271,22 +320,35 @@ public class TerrainNavigatorModel
                     nodes[i][j].previousBestChoice = node;
                     nodes[i][j].totalDifficulty += node.totalDifficulty;
                 }
-                
-                System.out.println("current j: " + j);
+            }
+            
+            // adjust the range of what is considered valid as we are on the next row up.
+            startX -= 1;
+            endX   += 1;
+
+            if(startX < 0){
+                startX = 0;
+            }
+            if(endX >= xSize){
+                endX = xSize - 1;
             }
         }
         
+        // loop over the top row, finding the one with the lowest total difficulty.
         Node returnNode = null;
         for(int i = 0 ; i < xSize; i++)
         {
-            if(returnNode == null)
-            {
-                returnNode = nodes[0][i];
-            }
-            
-            if(nodes[0][i].totalDifficulty < returnNode.totalDifficulty)
-            {
-                returnNode = nodes[0][i];
+            if(nodes[0][i].validChoice)
+            {            
+                if(returnNode == null)
+                {
+                    returnNode = nodes[0][i];
+                }
+
+                if(nodes[0][i].totalDifficulty < returnNode.totalDifficulty)
+                {
+                    returnNode = nodes[0][i];
+                }
             }
         }
         
@@ -311,9 +373,11 @@ public class TerrainNavigatorModel
     {
         int x, y, originalDifficulty, totalDifficulty;
         Node previousBestChoice;
+        boolean validChoice;
         
         public Node(int y, int x, int od)
         {
+            this.validChoice = false;
             this.y = y;
             this.x = x;
             this.originalDifficulty = od;

@@ -20,6 +20,7 @@ import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JSlider;
 
 public class TerrainNavigatorGUI extends JPanel implements ActionListener, MouseListener
 {
@@ -45,11 +46,11 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
         newTerrainButtonDB.addActionListener(this);
         solveOptimalPath = new JButton("Solve Optimal Path (Greedy)");
         solveOptimalPath.addActionListener(this);
-        solveOptimalPathDP = new JButton("Solve Optimal Path (Dynamic Programming)");
+        solveOptimalPathDP = new JButton("Solve Optimal Path (Using Intelligence)");
         solveOptimalPathDP.addActionListener(this);
         newTerrainButtonRandom = new JButton("New Terrain (Randomly Generated)");
         newTerrainButtonRandom.addActionListener(this);
-        retry = new JButton("Retry");
+        retry = new JButton("Reset Current Terrain");
         retry.addActionListener(this);
         eastPanel.add(scoreLabel);
         eastPanel.add(computersScoreLabel);
@@ -137,21 +138,21 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
         }
         else if(source == retry)
         {
-            this.model.currentPosition.x = -1;
-            this.model.currentPosition.y = -1;
-            this.model.firstMove = true;
-            this.model.computersFirstMove = true;
-            this.model.tally = 0;
-            this.model.computersTally = 0;
-            this.model.history.clear();
-            this.model.computersHistory.clear();
-            this.scoreLabel.setText("Total Difficulty: 0");
-            this.computersScoreLabel.setText("Computers Difficulty: 0");
+            scoreLabel.setText("Total Difficulty: 0");
+            computersScoreLabel.setText("Computers Difficulty: 0");
+            
+            model.resetComputer();
+            model.resetPlayer();
+            
             this.drawPanel.revalidate();
             this.drawPanel.repaint();
         }
         else if(source == solveOptimalPath)
         {
+            if(!model.computersFirstMove){
+                model.resetComputer();
+                computersScoreLabel.setText("Computers Difficulty: 0");
+            }
             model.solveOptimalPath(0);
             computersScoreLabel.setText("Computers Difficulty: " + model.computersTally);
             this.drawPanel.revalidate();
@@ -159,10 +160,25 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
         }
         else if(source == solveOptimalPathDP)
         {
-            model.solveOptimalPath(1.0f);
-            computersScoreLabel.setText("Computers Difficulty: " + model.computersTally);
-            this.drawPanel.revalidate();
-            this.drawPanel.repaint();
+            JSlider selection = new JSlider(0, 0, 100, 100);
+            selection.setPaintLabels(true);
+            selection.setMajorTickSpacing(20);
+            Object[] fields = { "Select intelligence level: ", selection};
+            int choice = JOptionPane.showConfirmDialog(this, fields,"The Choice of a Lifetime", JOptionPane.OK_CANCEL_OPTION);
+            
+            if(choice == 0)
+            {
+                if(!model.computersFirstMove){
+                    model.resetComputer();
+                    computersScoreLabel.setText("Computers Difficulty: 0");
+                }
+                float selectedValue = selection.getValue() / 100.0f;
+                System.out.println("Value: " + selection.getValue() + " Percentage: " + selectedValue);
+                model.solveOptimalPath(selectedValue);
+                computersScoreLabel.setText("Computers Difficulty: " + model.computersTally);
+                this.drawPanel.revalidate();
+                this.drawPanel.repaint();
+            }
         }
     }
 
@@ -317,6 +333,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
                 printAvailibleMove(g);
                 printHistory(g);
                 printComputersHistory(g);
+                System.out.println("painting");
             }
         }
         
@@ -398,7 +415,6 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
                     {
                         if(model.ySize - 1 == i)
                         {
-                            System.out.println("first move");
                             g.drawRect(xStart, yStart, boxSize, boxSize);
                         }
                     }
@@ -471,7 +487,6 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
                     synchronized(this)
                     {
                         wait();
-                        System.out.println("in while loop");
                         repaint();
                     }
                 } catch (InterruptedException ex) {
