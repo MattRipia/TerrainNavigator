@@ -8,6 +8,7 @@ import java.util.Random;
 import java.util.Observable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.JOptionPane;
 import terrainnavigator.TerrainNavigatorGUI.DrawPanel;
 
 public class TerrainNavigatorModel extends Observable
@@ -22,47 +23,53 @@ public class TerrainNavigatorModel extends Observable
     
     public TerrainNavigatorModel(String terrain) throws SQLException 
     {
-        int i = 0;
-        int maxX = 0;
-        int maxY = 0;
-        this.tally = 0;
-        this.firstMove = true;
-        this.computersFirstMove = true;
-        this.history = new ArrayList();
-        this.computersHistory = new ArrayList();
-        this.currentPosition = new Point(-1, -1);
-        this.computersPosition = new Point(-1, -1);
-        this.db = new Database();
-        
-        // gets the size of the matrix
-        ResultSet rs = db.queryDB("select * from " + terrain);
-        while(rs.next())
-        {
-            maxX = Math.max(maxX, Integer.valueOf(rs.getString(1)));
-            maxY = Math.max(maxY, Integer.valueOf(rs.getString(2)));
-            i++;
-        }
-        
-        // matrix size
-        maxX += 1;
-        maxY += 1;
-        xSize = maxX;
-        ySize = maxY;
-        
-        System.out.println(terrain + " has " + i + " rows");
-        System.out.println("Max x: " + xSize);
-        System.out.println("Max y: " + ySize);
-        
-        // create the matrix
-        gridMatrix = new int[ySize][xSize];
+        try{
+            int i = 0;
+            int maxX = 0;
+            int maxY = 0;
+            this.tally = 0;
+            this.firstMove = true;
+            this.computersFirstMove = true;
+            this.history = new ArrayList();
+            this.computersHistory = new ArrayList();
+            this.currentPosition = new Point(-1, -1);
+            this.computersPosition = new Point(-1, -1);
+            this.db = new Database();
 
-        // reset the cursor
-        rs.first();
-        rs.previous();
-        while(rs.next())
+            // gets the size of the matrix
+            ResultSet rs = db.queryDB("select * from " + terrain);
+            while(rs.next())
+            {
+                maxX = Math.max(maxX, Integer.valueOf(rs.getString(1)));
+                maxY = Math.max(maxY, Integer.valueOf(rs.getString(2)));
+                i++;
+            }
+
+            // matrix size
+            maxX += 1;
+            maxY += 1;
+            xSize = maxX;
+            ySize = maxY;
+
+            System.out.println(terrain + " has " + i + " rows");
+            System.out.println("Max x: " + xSize);
+            System.out.println("Max y: " + ySize);
+
+            // create the matrix
+            gridMatrix = new int[ySize][xSize];
+
+            // reset the cursor
+            rs.first();
+            rs.previous();
+            while(rs.next())
+            {
+                // fill out the grid
+                gridMatrix[rs.getInt(2)][rs.getInt(1)] = rs.getInt(3);
+            }
+        }
+        catch(SQLException e)
         {
-            // fill out the grid
-            gridMatrix[rs.getInt(2)][rs.getInt(1)] = rs.getInt(3);
+            throw new SQLException();
         }
     }
     

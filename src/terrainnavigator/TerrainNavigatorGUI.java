@@ -263,12 +263,12 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
         try 
         {
             // tinyA, tinyB, small, medium, large, illustrated
+            this.model = new TerrainNavigatorModel(selectedDB);
+            
             if(drawPanel != null)
             {
                 this.drawPanel.killThread();
             }
-            
-            this.model = new TerrainNavigatorModel(selectedDB);
             
             if(model.ySize > model.xSize)
             {
@@ -289,7 +289,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
         } 
         catch (SQLException ex) 
         {
-            Logger.getLogger(TerrainNavigatorGUI.class.getName()).log(Level.SEVERE, null, ex);
+            JOptionPane.showMessageDialog(this, "Unable to connect to database!");
         }
     }
     

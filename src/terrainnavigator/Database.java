@@ -25,7 +25,7 @@ public class Database
         } 
         catch (ClassNotFoundException | SQLException ex) 
         {
-            Logger.getLogger(Database.class.getName()).log(Level.SEVERE, null, ex);
+            throw new SQLException();
         }
     }
     
