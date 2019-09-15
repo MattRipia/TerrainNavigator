@@ -13,6 +13,8 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.sql.SQLException;
+import java.util.Observable;
+import java.util.Observer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JButton;
@@ -308,8 +310,10 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
         Thread t1 = new Thread(drawPanel);
         t1.start();
     }
+
+
     
-    protected class DrawPanel extends JPanel implements Runnable
+    protected class DrawPanel extends JPanel implements Runnable, Observer
     {
         int boxSize, offSet;
         TerrainNavigatorModel model;
@@ -321,6 +325,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
             this.boxSize = boxSize;
             this.offSet = offSet;
             this.model = model;
+            model.addObserver(this);
         }
         
         @Override
@@ -333,7 +338,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
                 printAvailibleMove(g);
                 printHistory(g);
                 printComputersHistory(g);
-                System.out.println("painting");
+                System.out.println("gui painted");
             }
         }
         
@@ -402,7 +407,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
             
             Graphics2D g2 = (Graphics2D) g;
             g2.setStroke(new BasicStroke(2));
-            g.setColor(Color.BLUE);
+            g2.setColor(Color.BLUE);
 
              // height
             for(int i = 0; i < model.ySize; i ++)
@@ -415,7 +420,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
                     {
                         if(model.ySize - 1 == i)
                         {
-                            g.drawRect(xStart, yStart, boxSize, boxSize);
+                            g2.drawRect(xStart, yStart, boxSize, boxSize);
                         }
                     }
                     else
@@ -425,7 +430,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
                         {
                             if(currentY - 1 == i)
                             {
-                                g.drawRect(xStart, yStart, boxSize, boxSize);
+                                g2.drawRect(xStart, yStart, boxSize, boxSize);
                             }
                         }
                     }
@@ -447,7 +452,9 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
 
         private void printHistory(Graphics g) 
         {
-            g.setColor(Color.GREEN);
+            Graphics2D g2 = (Graphics2D)g;
+            g2.setColor(Color.GREEN);
+            g2.setStroke(new BasicStroke(3));
             Point prevPoint = null;
             
             for(Point p : model.history)
@@ -457,14 +464,16 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
                     prevPoint = p;
                 }
                 
-                g.drawLine((offSet + (boxSize * prevPoint.x)) + boxSize / 2,  (offSet + (boxSize * prevPoint.y)) + boxSize / 2,  (offSet + (boxSize * p.x)) + boxSize / 2,  (offSet + (boxSize * p.y)) + boxSize / 2);
+                g2.drawLine((offSet + (boxSize * prevPoint.x)) + boxSize / 2,  (offSet + (boxSize * prevPoint.y)) + boxSize / 2,  (offSet + (boxSize * p.x)) + boxSize / 2,  (offSet + (boxSize * p.y)) + boxSize / 2);
                 prevPoint = p;
             }
         }
         
         private void printComputersHistory(Graphics g)
         {
-            g.setColor(Color.ORANGE);
+            Graphics2D g2 = (Graphics2D)g;
+            g2.setColor(Color.ORANGE);
+            g2.setStroke(new BasicStroke(3));
             Point prevPoint = null;
             for(Point p : model.computersHistory)
             {
@@ -473,7 +482,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
                     prevPoint = p;
                 }
                 
-                g.drawLine((offSet + (boxSize * prevPoint.x)) + boxSize / 2,  (offSet + (boxSize * prevPoint.y)) + boxSize / 2,  (offSet + (boxSize * p.x)) + boxSize / 2,  (offSet + (boxSize * p.y)) + boxSize / 2);
+                g2.drawLine((offSet + (boxSize * prevPoint.x)) + boxSize / 2,  (offSet + (boxSize * prevPoint.y)) + boxSize / 2,  (offSet + (boxSize * p.x)) + boxSize / 2,  (offSet + (boxSize * p.y)) + boxSize / 2);
                 prevPoint = p;
             }
         }
@@ -487,6 +496,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
                     synchronized(this)
                     {
                         wait();
+                        System.out.println("Thread is awake!");
                         repaint();
                     }
                 } catch (InterruptedException ex) {
@@ -509,6 +519,13 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
         public synchronized void wakeUp() 
         {
             notifyAll();
+        }
+
+        @Override
+        public void update(Observable o, Object arg) 
+        {
+            System.out.println("update hit - observer");
+            wakeUp();
         }
     }
 }

@@ -5,11 +5,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.Observable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import terrainnavigator.TerrainNavigatorGUI.DrawPanel;
 
-public class TerrainNavigatorModel 
+public class TerrainNavigatorModel extends Observable
 {
     public int[][] gridMatrix;
     public Point currentPosition, computersPosition;
@@ -19,7 +20,7 @@ public class TerrainNavigatorModel
     public Database db;
     public DrawPanel drawPanel;
     
-    public TerrainNavigatorModel(String terrain) throws SQLException
+    public TerrainNavigatorModel(String terrain) throws SQLException 
     {
         int i = 0;
         int maxX = 0;
@@ -79,6 +80,7 @@ public class TerrainNavigatorModel
         this.history = new ArrayList();
         this.computersHistory = new ArrayList();
         
+        
         for(int i = 0; i < ySize; i++)
         {
             for(int j = 0; j < xSize; j++)
@@ -91,11 +93,14 @@ public class TerrainNavigatorModel
     }
     
     public void addDrawPanel(DrawPanel dp){
-        this.drawPanel = dp;
+        drawPanel = dp;
     }
     
-    public void notifyGUI(){
-        drawPanel.wakeUp();
+    // notify the observer that the state has changed - which updates the gui
+    public void notifyGUI()
+    {
+        setChanged();
+        notifyObservers();
     }
 
     public void resetComputer(){
