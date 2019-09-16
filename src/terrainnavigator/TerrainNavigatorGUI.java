@@ -31,7 +31,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
     DrawPanel drawPanel;
     int size, offSet, boxSize;
     TerrainNavigatorModel model;
-    JButton playAgainButton, newTerrainButtonDB, newTerrainButtonRandom, retry, solveOptimalPath, solveOptimalPathDP;
+    JButton infoButton, playAgainButton, newTerrainButtonDB, newTerrainButtonRandom, retry, solveOptimalPath, solveOptimalPathDP;
     String[] dbOptions = {"tinyA", "tinyB", "small", "medium", "large", "illustrated"};
     boolean validMove = false;
     
@@ -44,6 +44,8 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
         eastPanel = new JPanel(new GridLayout(20, 0));
         scoreLabel = new JLabel("Total Difficulty: 0");
         computersScoreLabel = new JLabel("Computers Difficulty: 0");
+        infoButton = new JButton("Info");
+        infoButton.addActionListener(this);
         newTerrainButtonDB = new JButton("New Terrain (From Database)");
         newTerrainButtonDB.addActionListener(this);
         solveOptimalPath = new JButton("Solve Optimal Path (Greedy)");
@@ -56,6 +58,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
         retry.addActionListener(this);
         eastPanel.add(scoreLabel);
         eastPanel.add(computersScoreLabel);
+        eastPanel.add(infoButton);
         eastPanel.add(newTerrainButtonDB);
         eastPanel.add(newTerrainButtonRandom);
         eastPanel.add(retry);
@@ -75,7 +78,26 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
     public void actionPerformed(ActionEvent e) 
     {
         Object source = e.getSource();
-        if(source == newTerrainButtonRandom)
+        if(source == infoButton)
+        {
+            String messageOne = "Welcome to the terrain navigator created by Matt Ripia - 1385931.";
+            String messageTwo = "You can either generate a random terrain, or load a terrain \nheld in a SQL Server by clicking one of the 'New Terrain' buttons.";
+            String messageThree = "You can select any squares with a blue outline \nmanually and navigate the terrain using your mouse.";
+            String messageFour = "You can also get the computer to solve the current terrain by clicking on one of the 'Solve Optimal Path' buttons."
+                    + "\n\nThis will show the best route from the bottom to the top of the terrain depending on what intelligence level is set."
+                    + "\n\n                                                                ( D Y N A M I C  P R O G R A M M I N G ) ";
+            String messageFive = "At any time you can reset the current terrain using the 'Reset Current Terrain' button."
+                    + "\n\nYou can also see your current difficulty as well as the computers difficulty in completing a terrain.\nThis is a running total of all the moves you have made.";
+            String messageSix = "Your path is shown is Green and the computers path is shown in Orange.";
+            
+            JOptionPane.showMessageDialog(this, messageOne);
+            JOptionPane.showMessageDialog(this, messageTwo);
+            JOptionPane.showMessageDialog(this, messageThree);
+            JOptionPane.showMessageDialog(this, messageFour);
+            JOptionPane.showMessageDialog(this, messageFive);
+            JOptionPane.showMessageDialog(this, messageSix);
+        }
+        else if(source == newTerrainButtonRandom)
         {
             String size = JOptionPane.showInputDialog(this, "Enter how large you would like the grid (5 - 30)", "Grid Size", 1);
             System.out.println(size);
@@ -87,7 +109,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
                     int intSize = Integer.valueOf(size);
                     if(intSize < 5 || intSize > 30)
                     {
-                        JOptionPane.showConfirmDialog(this, "That number is out of range!", "Opps", 2);
+                        JOptionPane.showMessageDialog(this, "That number is out of range!");
                     }
                     else
                     {
@@ -105,7 +127,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
                 } 
                 catch(NumberFormatException numFormat)
                 {
-                   JOptionPane.showConfirmDialog(this, "You didnt enter a number!", "Opps", 2);
+                   JOptionPane.showMessageDialog(this, "You didnt enter a number!");
                 }
             }
         }
@@ -117,25 +139,21 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
             
             if(choice == 0)
             {
-                String selectedDB = (String)selectionList.getSelectedItem();
                 try {
-                // kill the old thread
-                    this.drawPanel.drawing = false;
-                    this.drawPanel.wakeUp();
-                    Thread.sleep(100);
+                    String selectedDB = (String)selectionList.getSelectedItem();
+                    
+                    // re-instantiate a new model / draw thread
+                    startTerrainDB(selectedDB);
+                    
+                    // add the new panel to the view, then revalidate
+                    add(drawPanel, BorderLayout.CENTER);
+                    drawPanel.revalidate();
+                    drawPanel.repaint();
                 } 
-                catch (InterruptedException ex) 
+                catch (SQLException ex) 
                 {
-                    Logger.getLogger(TerrainNavigatorGUI.class.getName()).log(Level.SEVERE, null, ex);
+                    JOptionPane.showMessageDialog(this, "Unable to connect to database! Try generate a new grid randomly instead...");
                 }
-
-                // re-instantiate a new model / draw thread
-                startTerrainDB(selectedDB);
-
-                // add the new panel to the view, then revalidate
-                add(drawPanel, BorderLayout.CENTER);
-                drawPanel.revalidate();
-                drawPanel.repaint();
             }
         }
         else if(source == retry)
@@ -221,13 +239,11 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
                 {
                     validMove = true;
                 }
-                 else
-                {
+                 else{
                     System.out.println("invlaid x!");
                 }
             }
-            else
-            {
+            else{
                 System.out.println("invlaid y!");
             }
         }
@@ -258,7 +274,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
     public void mouseExited(MouseEvent e) {
     }
 
-    private void startTerrainDB(String selectedDB)
+    private void startTerrainDB(String selectedDB) throws SQLException
     {
         try 
         {
@@ -289,7 +305,7 @@ public class TerrainNavigatorGUI extends JPanel implements ActionListener, Mouse
         } 
         catch (SQLException ex) 
         {
-            JOptionPane.showMessageDialog(this, "Unable to connect to database!");
+            throw new SQLException();
         }
     }
     
